@@ -1,0 +1,29 @@
+export const GAME_CONFIG = {
+  BALL_SIZE: 7,
+  CANVAS_WIDTH: 150,
+  CANVAS_HEIGHT: 150,
+  INITIAL_COMPUTER_SPEED: 2,
+  INITIAL_PLAYER_POS_X: 70,
+  INITIAL_BALL_SPEED: 2,
+  PADDLE_WIDTH: 24,
+  PADDLE_HEIGHT: 2,
+  CANVAS_OFFSET_X: 43,
+  CANVAS_OFFSET_Y: 40,
+} as const;
+
+export const COLORS = {
+  BACKGROUND: '#111',
+  CANVAS_BG: '#000000',
+  LINE_WHITE: '#FFFFFF',
+  TEXT_WHITE: '#B0B0B0',
+} as const;
+
+export const UI_CONFIG = {
+  BUTTON_SIZE: 24,
+  TEXT_SIZE: 14,
+} as const;
+
+export const SCORE_CONFIG = {
+  WIDTH: 30,
+  HEIGHT: 60,
+} as const;
