@@ -4,7 +4,7 @@ import { GameRenderer } from './GameRenderer';
 export enum GameStatus {
   playing,
   paused,
-  stopped,
+  stopped
 }
 
 export interface PlayerState {
@@ -25,6 +25,8 @@ export interface BallState {
   speed: number;
 }
 
+let randSeed: number = Date.now() & 0xffffffff;
+
 export class GameController {
   private static _instance: GameController | null = null;
   private _gameRenderer: GameRenderer;
@@ -34,18 +36,18 @@ export class GameController {
   private _gameStatus: GameStatus = GameStatus.playing;
   private _player: PlayerState = {
     x: GAME_CONFIG.INITIAL_PLAYER_POS_X,
-    lastTouchX: 0,
+    lastTouchX: 0
   }
   private _computer: ComputerState = {
     x: 0,
-    speed: GAME_CONFIG.INITIAL_COMPUTER_SPEED,
+    speed: GAME_CONFIG.INITIAL_COMPUTER_SPEED
   }
   private _ball: BallState = {
     x: 0,
     y: 0,
     vx: 0,
     vy: 0,
-    speed: GAME_CONFIG.INITIAL_BALL_SPEED,
+    speed: GAME_CONFIG.INITIAL_BALL_SPEED
   }
 
   constructor(gameRenderer: GameRenderer) {
@@ -61,6 +63,11 @@ export class GameController {
       GameController._instance = new GameController(gameRenderer);
     }
     return GameController._instance;
+  }
+
+  rand(): number {
+    randSeed = (1664525 * randSeed + 1013904223) >>> 0;
+    return randSeed / 0xffffffff;
   }
 
   getPlayer(): PlayerState {
@@ -111,9 +118,9 @@ export class GameController {
   resetPositions() {
     this._ball.x = (GAME_CONFIG.CANVAS_WIDTH - GAME_CONFIG.BALL_SIZE) / 2;
     this._ball.y = (GAME_CONFIG.CANVAS_HEIGHT - GAME_CONFIG.BALL_SIZE) / 2;
-    let angle = Math.random() * Math.PI / 2 + Math.PI / 4;
-    let up = Math.random() > 0.5;
-    this._ball.vx = this._ball.speed * Math.cos(angle) * (Math.random() > 0.5 ? 1 : -1);
+    let angle = this.rand() * Math.PI / 2 + Math.PI / 4;
+    let up = this.rand() > 0.5;
+    this._ball.vx = this._ball.speed * Math.cos(angle) * (this.rand() > 0.5 ? 1 : -1);
     this._ball.vy = this._ball.speed * (up ? -1 : 1);
   }
 
@@ -201,8 +208,3 @@ export class GameController {
 
   }
 }
-
-
-
-
-

@@ -41,7 +41,7 @@ export struct PongGameCanvas {
           },
           onPause: () => {
             this.gameController.pauseGame();
-          },
+          }
         })
 
         Canvas(this.context)
@@ -55,7 +55,7 @@ export struct PongGameCanvas {
           .height(GAME_CONFIG.CANVAS_HEIGHT)
         GameScores({
           computerScore: this.gameController.getComputerScore(),
-          playerScore: this.gameController.getPlayerScore(),
+          playerScore: this.gameController.getPlayerScore()
         })
       }
     }
