@@ -1,5 +1,5 @@
 import { GameStatus } from '../lib/GameController';
-import { COLORS, GAME_CONFIG, UI_CONFIG } from '../utils/Constants';
+import { COLORS, CONTROLS_CONFIG, GAME_CONFIG, UI_CONFIG } from '../utils/Constants';
 
 interface GameControlsParams {
   gameStatus: GameStatus;
@@ -24,32 +24,35 @@ function mediaButtonBuilder(res: Resource, onClick: () => void) {
 
 @Builder
 export function GameControlsBuilder(params: GameControlsParams) {
-  RelativeContainer() {
-    Row() {
-      if (params.gameStatus === GameStatus.playing) {
-        Column() {
-          mediaButtonBuilder($r('app.media.stop'), () => params.onStop())
-          Blank().layoutWeight(1)
-          mediaButtonBuilder($r('app.media.pause'), () => params.onPause())
-        }
-        .justifyContent(FlexAlign.SpaceBetween)
-        .alignItems(HorizontalAlign.Center)
-        .margin({ left: 12, bottom: 24, top: 24 })
-        .transition(TransitionEffect.OPACITY.animation({ duration: 1000, curve: Curve.Ease }))
-
+  Stack() {
+    if (params.gameStatus === GameStatus.playing) {
+      Column() {
+        mediaButtonBuilder($r('app.media.stop'), () => params.onStop())
+        Blank().layoutWeight(1)
+        mediaButtonBuilder($r('app.media.pause'), () => params.onPause())
       }
-      if (params.gameStatus !== GameStatus.playing) {
-        Row() {
-          mediaButtonBuilder($r('app.media.play'), () => params.onStart())
-        }
-        .margin({ left: 12, top: GAME_CONFIG.CANVAS_HEIGHT / 2 - GAME_CONFIG.CANVAS_OFFSET_Y })
-        .transition(TransitionEffect.OPACITY.animation({ duration: 1000, curve: Curve.Ease }))
-      }
+      .justifyContent(FlexAlign.SpaceBetween)
+      .alignItems(HorizontalAlign.Start)
+      .width(UI_CONFIG.BUTTON_SIZE + CONTROLS_CONFIG.BUTTON_MARGIN_LEFT)
+      .height(GAME_CONFIG.CANVAS_HEIGHT)
+      .padding({
+        left: CONTROLS_CONFIG.BUTTON_MARGIN_LEFT,
+        top: CONTROLS_CONFIG.BUTTON_MARGIN_VERTICAL,
+        bottom: CONTROLS_CONFIG.BUTTON_MARGIN_VERTICAL
+      })
+      .transition(TransitionEffect.OPACITY.animation({ duration: 1000, curve: Curve.Ease }))
     }
-    .width('100%')
+    if (params.gameStatus !== GameStatus.playing) {
+      Row() {
+        mediaButtonBuilder($r('app.media.play'), () => params.onStart())
+      }
+      .padding({ left: CONTROLS_CONFIG.BUTTON_MARGIN_LEFT })
+      .transition(TransitionEffect.OPACITY.animation({ duration: 1000, curve: Curve.Ease }))
+    }
   }
-  .margin({ top: GAME_CONFIG.CANVAS_OFFSET_Y + (GAME_CONFIG.CANVAS_HEIGHT / 5) })
+  .alignContent(Alignment.Start)
   .width('100%')
-  .height(GAME_CONFIG.CANVAS_HEIGHT / 2)
+  .height('100%')
+  .hitTestBehavior(HitTestMode.Transparent)
 }
 

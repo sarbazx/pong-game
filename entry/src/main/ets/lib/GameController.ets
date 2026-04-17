@@ -1,10 +1,13 @@
-import { GAME_CONFIG } from '../utils/Constants';
+import { GAME_CONFIG, GAMEPLAY_CONFIG } from '../utils/Constants';
 import { GameRenderer } from './GameRenderer';
+import { HapticUtil } from '../utils/HapticUtil';
+import { Logger } from '../utils/Logger';
 
 export enum GameStatus {
   playing,
   paused,
-  stopped
+  stopped,
+  finished
 }
 
 export interface PlayerState {
@@ -34,6 +37,7 @@ export class GameController {
   private _playerScore: number = 0;
   private _computerScore: number = 0;
   private _gameStatus: GameStatus = GameStatus.playing;
+  private _onFinish: ((winner: string, playerScore: number, computerScore: number) => void) | null = null;
   private _player: PlayerState = {
     x: GAME_CONFIG.INITIAL_PLAYER_POS_X,
     lastTouchX: 0
@@ -90,7 +94,24 @@ export class GameController {
     return this._ball;
   }
 
+  /** Returns 'player', 'computer', or null when game is not finished. */
+  getWinner(): string | null {
+    if (this._gameStatus !== GameStatus.finished) {
+      return null;
+    }
+    return this._playerScore >= GAMEPLAY_CONFIG.WIN_SCORE ? 'player' : 'computer';
+  }
+
+  setRenderer(renderer: GameRenderer) {
+    this._gameRenderer = renderer;
+  }
+
+  setOnFinish(cb: (winner: string, playerScore: number, computerScore: number) => void) {
+    this._onFinish = cb;
+  }
+
   stopGame() {
+    Logger.info('GameController', 'stopGame');
     this.resetGame();
     clearInterval(this._timer);
     this._timer = 0;
@@ -98,12 +119,41 @@ export class GameController {
   }
 
   pauseGame() {
+    Logger.info('GameController', 'pauseGame');
     clearInterval(this._timer);
     this._timer = 0;
     this._gameStatus = GameStatus.paused;
   }
 
+  private finishGame() {
+    clearInterval(this._timer);
+    this._timer = 0;
+    this._gameStatus = GameStatus.finished;
+    const winner = this.getWinner() ?? 'unknown';
+    Logger.info('GameController', `finishGame — winner: ${winner}`);
+    if (this._onFinish) {
+      this._onFinish(winner, this._playerScore, this._computerScore);
+    }
+  }
+
+  /** Increase ball speed after a successful paddle hit (capped). */
+  private incrementBallSpeed() {
+    const cap = GAME_CONFIG.INITIAL_BALL_SPEED * GAMEPLAY_CONFIG.MAX_BALL_SPEED_MULTIPLIER;
+    if (this._ball.speed < cap) {
+      this._ball.speed = Math.min(cap, this._ball.speed + GAMEPLAY_CONFIG.BALL_SPEED_INCREMENT);
+    }
+  }
+
+  /** Resume after pause — does NOT reset scores or positions. */
+  resumeGame() {
+    Logger.info('GameController', 'resumeGame');
+    clearInterval(this._timer);
+    this._timer = setInterval((): void => this.update(), 16);
+    this._gameStatus = GameStatus.playing;
+  }
+
   startGame() {
+    Logger.info('GameController', 'startGame');
     this.stopGame();
     this._timer = setInterval((): void => this.update(), 16); // 16 fps
     this._gameStatus = GameStatus.playing;
@@ -112,6 +162,7 @@ export class GameController {
   resetGame() {
     this._playerScore = 0;
     this._computerScore = 0;
+    this._ball.speed = GAME_CONFIG.INITIAL_BALL_SPEED;
     this._gameStatus = GameStatus.stopped;
   }
 
@@ -162,11 +213,18 @@ export class GameController {
           this._ball.x <= this._computer.x + GAME_CONFIG.PADDLE_WIDTH &&
           this._ball.y <= GAME_CONFIG.PADDLE_HEIGHT + GAME_CONFIG.BALL_SIZE
       ) {
+        this.incrementBallSpeed();
+        HapticUtil.shortVibrate();
         this._ball.vy = this._ball.speed;
         this._ball.vx += ballCenter >= computerCenter ? -this._ball.speed : this._ball.speed;
       } else {
         this._playerScore += 1;
+        HapticUtil.scoreVibrate();
         this._ball.vy = Math.abs(this._ball.vy);
+        if (this._playerScore >= GAMEPLAY_CONFIG.WIN_SCORE) {
+          this.finishGame();
+          return;
+        }
       }
     }
 
@@ -179,30 +237,31 @@ export class GameController {
           this._ball.x <= this._player.x + GAME_CONFIG.PADDLE_WIDTH &&
           this._ball.y + GAME_CONFIG.BALL_SIZE + GAME_CONFIG.PADDLE_HEIGHT >= GAME_CONFIG.CANVAS_HEIGHT
       ) {
+        this.incrementBallSpeed();
+        HapticUtil.shortVibrate();
         this._ball.vy = -this._ball.speed;
         this._ball.vx += ballCenter >= playerCenter ? this._ball.speed : -this._ball.speed;
       } else {
         this._computerScore += 1;
+        HapticUtil.scoreVibrate();
         this._ball.vy = -Math.abs(this._ball.vy);
+        if (this._computerScore >= GAMEPLAY_CONFIG.WIN_SCORE) {
+          this.finishGame();
+          return;
+        }
       }
     }
 
-    // move _computer paddle towards _ball
+    // move _computer paddle towards _ball (signed, clamped step)
+    let diff = ballCenter - computerCenter;
+    let step = Math.min(Math.abs(this._computer.speed), Math.abs(diff));
+    this._computer.x += diff > 0 ? step : -step;
 
-    let diff = computerCenter - ballCenter;
-    let move = (diff * this._computer.speed) / 100;
-    this._computer.x += Math.max(this._computer.speed, move);
-
-    // check if _computer paddle is closing on left wall
-    if (this._computer.x < 0) {
-      this._computer.speed = Math.abs(this._computer.speed);
-    }
-
-    // check if _computer paddle is closing on right wall
-    let computerEndX = GAME_CONFIG.PADDLE_WIDTH + this._computer.x;
-    if (computerEndX >= GAME_CONFIG.CANVAS_WIDTH) {
-      this._computer.speed = -Math.abs(this._computer.speed);
-    }
+    // clamp computer paddle to canvas bounds
+    this._computer.x = Math.max(
+      0,
+      Math.min(GAME_CONFIG.CANVAS_WIDTH - GAME_CONFIG.PADDLE_WIDTH, this._computer.x)
+    );
 
     this._gameRenderer.drawGame(this._player, this._computer, this._ball);
 

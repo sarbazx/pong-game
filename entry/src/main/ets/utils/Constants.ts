@@ -27,3 +27,19 @@ export const SCORE_CONFIG = {
   WIDTH: 30,
   HEIGHT: 60
 } as const;
+
+export const GAMEPLAY_CONFIG = {
+  WIN_SCORE: 7,
+  MAX_BALL_SPEED_MULTIPLIER: 2,
+  BALL_SPEED_INCREMENT: 0.15
+} as const;
+
+export const CONTROLS_CONFIG = {
+  BUTTON_MARGIN_LEFT: 12,
+  BUTTON_MARGIN_VERTICAL: 24
+} as const;
+
+export const SCORES_DISPLAY_CONFIG = {
+  MARGIN_LEFT_PERCENT: '50%',
+  MARGIN_TOP_PERCENT: '35%'
+} as const;
